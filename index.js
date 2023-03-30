@@ -26,7 +26,7 @@ class Card {
 class Desk {
 	suits = ["♠", "♦", "♣", "♥"];
 	cards = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
-	desk = [];
+	#desk = [];
 
 	constructor() {
 		this.#fillDesk();
@@ -35,95 +35,74 @@ class Desk {
 	#fillDesk() {
 		this.suits.forEach((item) => {
 			this.cards.forEach((card) => {
-				this.desk.push(new Card(card, item));
+				this.#desk.push(new Card(card, item));
 			});
 		});
 	}
 
 	mix() {
-		this.desk.sort(() => Math.random() - 0.5);
+		this.#desk.sort(() => Math.random() - 0.5);
+	}
+
+	getCart() {
+		return this.#desk.pop();
 	}
 }
 
 class Player {
-	playersHand = [];
-	playersCount = 0;
-
-	cartInHand(desk) {
-		let cartIndex = randomIntFromInterval(1, desk.length) - 1;
-		this.playersHand.push(desk[cartIndex]);
-		desk.splice(cartIndex, 1);
-	}
+	hand = [];
+	count = 0;
 
 	checkCount() {
 		let aceCount = 0;
 		let countWithAce = 0;
 		let points = 0;
-		this.playersHand.forEach((cart) => {
+		this.hand.forEach((cart) => {
 			if (cart.value === "A") aceCount++;
 			points += +cart.getValue();
 		});
-		this.playersCount = points;
-		if (aceCount != 0) countWithAce = this.playersCount + aceCount * 10;
+		this.count = points;
+		if (aceCount != 0) countWithAce = this.count + aceCount * 10;
 
-		if (countWithAce < 22 && countWithAce > 0) this.playersCount = countWithAce;
+		if (countWithAce < 22 && countWithAce > 0) this.count = countWithAce;
 	}
 
 	show() {
 		let str = "";
-		this.playersHand.forEach((cart) => {
+		this.hand.forEach((cart) => {
 			str += cart.value + cart.suit + " ";
 		});
 		console.log("Players hand: " + str);
-		console.log("Players count: " + this.playersCount);
+		console.log("Players count: " + this.count);
 	}
 }
 
-class Croupier {
-	croupiersHand = [];
-	croupiersCount = 0;
-
-	cartInHand(desk) {
-		let cartIndex = randomIntFromInterval(1, desk.length) - 1;
-		this.croupiersHand.push(desk[cartIndex]);
-		desk.splice(cartIndex, 1);
-	}
+class Croupier extends Player{
 	endGame(desk) {
 		this.checkCount();
 		while (true) {
 			if (
-				this.croupiersCount !== 17 &&
-				this.croupiersCount < 22 &&
-				this.croupiersCount < 17
+				this.count !== 17 &&
+				this.count < 22 &&
+				this.count < 17
 			) {
-				this.cartInHand(desk);
+				this.hand.push(desk.getCart());
 				this.checkCount();
 			} else break;
 		}
 	}
 
-	checkCount() {
-		let aceCount = 0;
-		let countWithAce = 0;
-		let points = 0;
-		this.croupiersHand.forEach((cart) => {
-			if (cart.value === "A") aceCount++;
-			points += +cart.getValue();
-		});
-		this.croupiersCount = points;
-		if (aceCount != 0) countWithAce = this.croupiersCount + aceCount * 10;
-
-		if (countWithAce < 22 && countWithAce > 0)
-			this.croupiersCount = countWithAce;
-	}
-
-	show() {
-		let str = "";
-		this.croupiersHand.forEach((cart) => {
-			str += cart.value + cart.suit + " ";
-		});
-		console.log("Croupiers hand: " + str);
-		console.log("Croupiers count: " + this.croupiersCount);
+	show(last) {
+		if (this.hand.length === 2 && !last) {
+			console.log("Croupiers hand: " + this.hand[0].value + this.hand[0].suit + " *");
+		} else {
+			let str = "";
+			this.hand.forEach((cart) => {
+				str += cart.value + cart.suit + " ";
+			});
+			console.log("Croupiers hand: " + str);
+			console.log("Croupiers count: " + this.count);
+		}
 	}
 }
 
@@ -146,30 +125,32 @@ let desk = new Desk();
 
 desk.mix();
 
+
 let p = new Player();
 let c = new Croupier();
 
-p.cartInHand(desk.desk);
-p.cartInHand(desk.desk);
+p.hand.push(desk.getCart());
+p.hand.push(desk.getCart());
 p.checkCount();
 
-c.cartInHand(desk.desk);
-c.cartInHand(desk.desk);
+c.hand.push(desk.getCart());
+c.hand.push(desk.getCart());
 c.checkCount();
 
 p.show();
 c.show();
 
 while (confirm("GO?")) {
-	p.cartInHand(desk.desk);
+	p.hand.push(desk.getCart());
 	p.checkCount();
 	p.show();
 	c.show();
 }
 
-c.endGame(desk.desk);
+c.endGame(desk);
 
 p.show();
-c.show();
+c.show(true);
 
-checkWhoWin(p.playersCount, c.croupiersCount);
+checkWhoWin(p.count, c.count);
+
